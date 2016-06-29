@@ -3,9 +3,10 @@ import struct
 import urllib.parse, urllib.request
 import json
 import time
-from difflib import SequenceMatcher
 import argparse
 import signal
+import sys
+from difflib import SequenceMatcher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--skip", dest="skip", default=0,
