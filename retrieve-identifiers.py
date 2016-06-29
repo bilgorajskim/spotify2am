@@ -4,6 +4,22 @@ import urllib.parse, urllib.request
 import json
 import time
 from difflib import SequenceMatcher
+import argparse
+import signal
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--skip", dest="skip", default=0,
+                  help="Amount of lines to skip from the input file")
+parser.add_argument("-i",
+                  dest="input_filename",
+                  default="spotify.csv",
+                  help="Input file (CSV)")
+parser.add_argument("-o",
+                  dest="output_filename",
+                  default="itunes.csv",
+                  help="Output file (CSV)")
+
+args = parser.parse_args()
 
 DEBUG = 0  # Set to 1 for closer inspection
 
@@ -71,13 +87,26 @@ def retrieve_itunes_identifier(title, artist):
 itunes_identifiers = []
 
 
-with open('spotify.csv', encoding='utf-8') as playlist_file:
+output_file = open(args.output_filename, 'w', encoding='utf-8')
+
+def signal_handler(signal, frame):
+    output_file.close()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
+i = 0
+skip = int(args.skip)
+with open(args.input_filename, encoding='utf-8') as playlist_file:
     playlist_reader = csv.reader(playlist_file)
     next(playlist_reader)
 
     for row in playlist_reader:
         title, artist = row[1], row[2]
         itunes_identifier = retrieve_itunes_identifier(title, artist)
+        i += 1
+        if i < skip:
+            continue
 
         if itunes_identifier:
             if itunes_identifier[1] == 'Primary':
@@ -91,10 +120,6 @@ with open('spotify.csv', encoding='utf-8') as playlist_file:
             elif itunes_identifier[1] == 'Fuzzy':
                 itunes_identifiers.append(itunes_identifier)
                 print("SUCCESS: Fuzzy match: {} - {} => {}".format(title, artist, itunes_identifier[0]))
+            output_file.write(str(itunes_identifier[0]) + "\n")
         else:
             pass
-
-
-with open('itunes.csv', 'w', encoding='utf-8') as output_file:
-    for itunes_identifier in itunes_identifiers:
-        output_file.write(str(itunes_identifier[0]) + "\n")
